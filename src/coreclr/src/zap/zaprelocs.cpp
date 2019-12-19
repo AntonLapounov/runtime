@@ -133,18 +133,20 @@ void ZapBaseRelocs::WriteReloc(PVOID pSrc, int offset, ZapNode * pTarget, int ta
             {
                 ThrowHR(COR_E_OVERFLOW);
             }
-            PutArm64Rel28((UINT32 *)pLocation,relOffset);
+            PutArm64Rel28((UINT32 *)pLocation, relOffset);
         }
         return;
 
     case IMAGE_REL_ARM64_PAGEBASE_REL21:
         {
-            TADDR pSitePage = ((TADDR)m_pImage->GetBaseAddress() + rva) & 0xFFFFFFFFFFFFF000LL;
-            TADDR pActualTargetPage = pActualTarget & 0xFFFFFFFFFFFFF000LL;
+            TADDR pSitePage = ((TADDR)m_pImage->GetBaseAddress() + rva) & ~0xFFFLL;
 
-            INT64 relPage = (INT64)(pActualTargetPage - pSitePage);
-            INT32 imm21 = (INT32)(relPage >> 12) & 0x1FFFFF;
-            PutArm64Rel21((UINT32 *)pLocation, imm21);
+            INT64 relPage = (pActualTarget - pSitePage) >> 12;
+            if (!FitsInRel21(relPage))
+            {
+                ThrowHR(COR_E_OVERFLOW);
+            }
+            PutArm64Rel21((UINT32 *)pLocation, (INT32)relPage);
         }
         return;
 
